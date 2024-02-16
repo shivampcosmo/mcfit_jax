@@ -2,7 +2,7 @@
 
 from mcfit.mcfit import mcfit
 from mcfit import kernels
-from numpy import pi
+from jax.numpy import pi
 
 
 __all__ = ['P2xi', 'xi2P', 'C2w', 'w2C', 'TophatVar', 'GaussVar']

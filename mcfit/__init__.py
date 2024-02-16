@@ -1,5 +1,4 @@
 """Multiplicatively Convolutional Fast Integral Transform"""
-
 from mcfit.mcfit import mcfit
 from mcfit.transforms import *
 from mcfit.cosmology import *

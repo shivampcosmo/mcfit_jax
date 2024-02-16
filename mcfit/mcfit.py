@@ -1,14 +1,9 @@
-import math
-import cmath
+import jax.numpy as jnp
 import warnings
 
 import numpy
-try:
-    import jax
-    jax.config.update("jax_enable_x64", True)
-except ModuleNotFoundError as e:
-    JAXNotFoundError = e
-
+import jax
+jax.config.update("jax_enable_x64", True)
 
 class mcfit(object):
     r"""Compute integral transforms as a multiplicative convolution.
@@ -118,18 +113,12 @@ class mcfit(object):
 
     """
 
-    def __init__(self, x, MK, q, N=2j, lowring=False, xy=1, backend='numpy'):
+    def __init__(self, x, MK, q, N=2j, lowring=False, xy=1, backend='jax'):
         if backend == 'numpy':
             self.np = numpy
             #self.jit = lambda fun: fun  # TODO maybe use Numba?
         elif backend == 'jax':
-            try:
-                self.np = jax.numpy
-                #self.jit = jax.jit  # TODO maybe leave it to the user? jax.jit for CPU too
-            except NameError:
-                raise JAXNotFoundError
-        else:
-            raise ValueError(f"backend {backend} not supported")
+            self.np = jax.numpy
 
         #self.__call__ = self.jit(self.__call__)
         #self.matrix = self.jit(self.matrix)
@@ -169,32 +158,32 @@ class mcfit(object):
     def _setup(self):
         if self.Nin < 2:
             raise ValueError(f"input size {self.Nin} must not be smaller than 2")
-        Delta = math.log(self.x[-1] / self.x[0]) / (self.Nin - 1)
+        Delta = jnp.log(self.x[-1] / self.x[0]) / (self.Nin - 1)
         x_head = self.x[:8]
         if not self.np.allclose(self.np.log(x_head[1:] / x_head[:-1]), Delta,
                                 rtol=1e-3):
             warnings.warn("input must be log-spaced")
 
         if isinstance(self.N, complex):
-            folds = math.ceil(math.log2(self.Nin * self.N.imag))
+            folds = jnp.ceil(jnp.log2(self.Nin * self.N.imag))
             self.N = 2**folds
         if self.N < self.Nin:
             raise ValueError(f"convolution size {self.N} must not be smaller than "
                              f"the input size {self.Nin}")
 
         if self.lowring and self.N % 2 == 0:
-            lnxy = Delta / math.pi * cmath.phase(self.MK(self.q + 1j * math.pi / Delta))
-            self.xy = math.exp(lnxy)
+            lnxy = Delta / jnp.pi * jnp.angle(self.MK(self.q + 1j * jnp.pi / Delta))
+            self.xy = jnp.exp(lnxy)
         else:
-            lnxy = math.log(self.xy)
-        self.y = math.exp(lnxy - Delta) / self.x[::-1]
+            lnxy = jnp.log(self.xy)
+        self.y = jnp.exp(lnxy - Delta) / self.x[::-1]
 
         self._x_ = self._pad(self.x, 0, True, False)
         self._y_ = self._pad(self.y, 0, True, True)
 
         m = numpy.arange(0, self.N//2 + 1)
-        self._u = self.MK(self.q + 2j * math.pi / self.N / Delta * m)
-        self._u *= numpy.exp(-2j * math.pi * lnxy / self.N / Delta * m)
+        self._u = self.MK(self.q + 2j * jnp.pi / self.N / Delta * m)
+        self._u *= numpy.exp(-2j * jnp.pi * lnxy / self.N / Delta * m)
         self._u = self.np.asarray(self._u, dtype=(self.x[0] + 0j).dtype)
 
         # following is unnecessary because hfft ignores the imag at Nyquist anyway
@@ -245,7 +234,7 @@ class mcfit(object):
         # convolution
         f = self.np.fft.rfft(f, axis=axis)  # f(x_n) -> f_m
         g = f * self._u.reshape(to_axis)  # f_m -> g_m
-        g = self.np.fft.hfft(g, n=self.N, axis=axis) / self.N  # g_m -> g(y_n)
+        g = self.np.fft.hfft(g, n=int(self.N), axis=axis) / self.N  # g_m -> g(y_n)
 
         if not keeppads:
             G = self._unpad(g, axis, True)
@@ -385,23 +374,23 @@ class mcfit(object):
                 exp = self.np.arange(-_Npad, 0).reshape(to_axis)
                 _a = end * ratio ** exp
             else:
-                _a = self.np.zeros(a.shape[:axis] + (_Npad,) + a.shape[axis+1:])
+                _a = self.np.zeros(a.shape[:axis] + (int(_Npad),) + a.shape[axis+1:])
         elif _extrap == 'const':
             end = self.np.take(a, self.np.array([0]), axis=axis)
-            _a = self.np.repeat(end, _Npad, axis=axis)
+            _a = self.np.repeat(end, int(_Npad), axis=axis)
         else:
             raise ValueError(f"left extrap {_extrap} not supported")
         if isinstance(extrap_, bool):
             if extrap_:
                 end = self.np.take(a, self.np.array([-1]), axis=axis)
                 ratio = end / self.np.take(a, self.np.array([-2]), axis=axis)
-                exp = self.np.arange(1, Npad_ + 1).reshape(to_axis)
+                exp = self.np.arange(1, int(Npad_) + 1).reshape(to_axis)
                 a_ = end * ratio ** exp
             else:
-                a_ = self.np.zeros(a.shape[:axis] + (Npad_,) + a.shape[axis+1:])
+                a_ = self.np.zeros(a.shape[:axis] + (int(Npad_),) + a.shape[axis+1:])
         elif extrap_ == 'const':
             end = self.np.take(a, self.np.array([-1]), axis=axis)
-            a_ = self.np.repeat(end, Npad_, axis=axis)
+            a_ = self.np.repeat(end, int(Npad_), axis=axis)
         else:
             raise ValueError(f"right extrap {extrap_} not supported")
 
@@ -432,4 +421,4 @@ class mcfit(object):
         else:
             _Npad, Npad_ = Npad//2, Npad - Npad//2
 
-        return self.np.take(a, self.np.arange(_Npad, self.N - Npad_), axis=axis)
+        return self.np.take(a, self.np.arange(int(_Npad), int(self.N) - int(Npad_)), axis=axis)

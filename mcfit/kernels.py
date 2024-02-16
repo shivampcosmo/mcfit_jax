@@ -1,10 +1,16 @@
-from numpy import arange, exp, log, ndim, pi, sqrt
-from scipy.special import gamma
-try:
-    from scipy.special import loggamma
-except ImportError:
-    def loggamma(x):
-        return log(gamma(x))
+from jax.numpy import arange, exp, log, ndim, pi, sqrt
+from loggamma_jax import loggamma as loggamma_orig
+from jax import vmap
+loggamma = vmap(loggamma_orig)
+from loggamma_jax import cgamma as gamma
+# from scipy.special import gamma
+# try:
+    # from scipy.special import loggamma
+# except ImportError:
+    # def loggamma(x):
+        # return log(gamma(x))
+
+
 
 def _deriv(MK, deriv):
     """Real deriv is wrt :math:`t`, complex deriv is wrt :math:`\ln t`"""
@@ -66,28 +72,28 @@ def Mellin_DoubleBesselJ(alpha, nu1, nu2):
         raise ValueError
     return MK
 
-def Mellin_DoubleSphericalBesselJ(alpha, nu1, nu2):
-    import mpmath
-    from numpy import frompyfunc
-    hyp2f1 = frompyfunc(lambda *a: complex(mpmath.hyp2f1(*a)), 4, 1)
-    if 0 < alpha < 1:
-        def MK(z):
-            return pi * exp(log(2)*(z-3) + log(alpha)*nu2 + loggamma(0.5*(nu1+nu2+z))
-                            - loggamma(0.5*(3+nu1-nu2-z)) - loggamma(1.5+nu2)) \
-                    * hyp2f1(0.5*(-1-nu1+nu2+z), 0.5*(nu1+nu2+z), 1.5+nu2, alpha**2)
-    elif alpha > 1:
-        def MK(z):
-            return pi * exp(log(2)*(z-3) + log(alpha)*(-nu1-z) + loggamma(0.5*(nu1+nu2+z))
-                            - loggamma(0.5*(3-nu1+nu2-z)) - loggamma(1.5+nu1)) \
-                    * hyp2f1(0.5*(-1+nu1-nu2+z), 0.5*(nu1+nu2+z), 1.5+nu1, alpha**-2)
-    elif alpha == 1:
-        def MK(z):
-            return pi * exp(log(2)*(z-3) + loggamma(2-z) + loggamma(0.5*(nu1+nu2+z))
-                            - loggamma(0.5*(3+nu1-nu2-z))- loggamma(0.5*(3-nu1+nu2-z))
-                            - loggamma(0.5*(4+nu1+nu2-z)))
-    else:
-        raise ValueError
-    return MK
+# def Mellin_DoubleSphericalBesselJ(alpha, nu1, nu2):
+#     import mpmath
+#     from numpy import frompyfunc
+#     hyp2f1 = frompyfunc(lambda *a: complex(mpmath.hyp2f1(*a)), 4, 1)
+#     if 0 < alpha < 1:
+#         def MK(z):
+#             return pi * exp(log(2)*(z-3) + log(alpha)*nu2 + loggamma(0.5*(nu1+nu2+z))
+#                             - loggamma(0.5*(3+nu1-nu2-z)) - loggamma(1.5+nu2)) \
+#                     * hyp2f1(0.5*(-1-nu1+nu2+z), 0.5*(nu1+nu2+z), 1.5+nu2, alpha**2)
+#     elif alpha > 1:
+#         def MK(z):
+#             return pi * exp(log(2)*(z-3) + log(alpha)*(-nu1-z) + loggamma(0.5*(nu1+nu2+z))
+#                             - loggamma(0.5*(3-nu1+nu2-z)) - loggamma(1.5+nu1)) \
+#                     * hyp2f1(0.5*(-1+nu1-nu2+z), 0.5*(nu1+nu2+z), 1.5+nu1, alpha**-2)
+#     elif alpha == 1:
+#         def MK(z):
+#             return pi * exp(log(2)*(z-3) + loggamma(2-z) + loggamma(0.5*(nu1+nu2+z))
+#                             - loggamma(0.5*(3+nu1-nu2-z))- loggamma(0.5*(3-nu1+nu2-z))
+#                             - loggamma(0.5*(4+nu1+nu2-z)))
+#     else:
+#         raise ValueError
+#     return MK
 
 def Mellin_Tophat(dim, deriv=0):
     def MK(z):

@@ -2,12 +2,12 @@
 
 from mcfit.mcfit import mcfit
 from mcfit import kernels
-from numpy import pi
-from scipy.special import gamma
+from jax.numpy import pi
+# from scipy.special import gamma
 
 
 __all__ = ['Hankel', 'SphericalBessel', 'DoubleBessel', 'DoubleSphericalBessel',
-           'FourierSine', 'FourierCosine', 'TophatSmooth', 'GaussSmooth']
+           'FourierSine', 'FourierCosine', 'GaussSmooth']
 
 
 class Hankel(mcfit):
@@ -138,21 +138,21 @@ class DoubleSphericalBessel(mcfit):
         self.prefac *= self.x**3
 
 
-class TophatSmooth(mcfit):
-    """Top-hat smoothing of a radial function.
+# class TophatSmooth(mcfit):
+#     """Top-hat smoothing of a radial function.
 
-    Parameters
-    ----------
-    dim : int
-        dimension of the smoothing filter
+#     Parameters
+#     ----------
+#     dim : int
+#         dimension of the smoothing filter
 
-    See :class:`mcfit.mcfit`
-    """
-    def __init__(self, x, dim=3, deriv=0, q=0, **kwargs):
-        self.dim = dim
-        MK = kernels.Mellin_Tophat(dim, deriv)
-        mcfit.__init__(self, x, MK, q, **kwargs)
-        self.prefac *= self.x**dim / (2**(dim-1) * pi**(dim/2) * gamma(dim/2))
+#     See :class:`mcfit.mcfit`
+#     """
+#     def __init__(self, x, dim=3, deriv=0, q=0, **kwargs):
+#         self.dim = dim
+#         MK = kernels.Mellin_Tophat(dim, deriv)
+#         mcfit.__init__(self, x, MK, q, **kwargs)
+#         self.prefac *= self.x**dim / (2**(dim-1) * pi**(dim/2) * gamma(dim/2))
 
 
 class GaussSmooth(mcfit):
